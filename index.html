@@ -3,34 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة SafeKid الموحدة</title>
+    <title>لوحة السوبر أدمن - إدارة الاشتراكات</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
-    <div class="max-w-md w-full bg-slate-800 border border-slate-700 p-8 rounded-3xl shadow-2xl text-center space-y-6">
-        <div class="w-20 h-20 bg-indigo-600/20 text-indigo-400 rounded-3xl flex items-center justify-center mx-auto text-3xl">
-            <i class="fa-solid fa-shield-halved"></i>
-        </div>
-        
-        <div>
-            <h1 class="text-2xl font-bold text-indigo-400">منصة SafeKid للرقابة الأبوية</h1>
-            <p class="text-slate-400 text-sm mt-2">اختر الواجهة التي تريد الانتقال إليها:</p>
+<body class="bg-slate-900 text-white min-h-screen p-6 font-sans">
+    <div class="max-w-4xl mx-auto space-y-6">
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-indigo-400"><i class="fa-solid fa-key"></i> إدارة تراخيص الآباء</h1>
+                <p class="text-slate-400 text-sm mt-1">أنشئ أكواد بيع للآباء وتحكم بحظرها أو تفعيلها.</p>
+            </div>
+            <div class="flex gap-2">
+                <input id="clientNameInput" type="text" placeholder="اسم العميل (مثال: محمد أحمد)" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                <button onclick="generateLicense()" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl text-sm font-semibold transition">توليد كود تفعيل</button>
+            </div>
         </div>
 
-        <div class="space-y-3">
-            <a href="super_admin.html" class="block w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-semibold border border-slate-600 transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-user-shield text-indigo-400"></i> لوحة السوبر أدمن
-            </a>
-            
-            <a href="parent_dashboard.html" class="block w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg">
-                <i class="fa-solid fa-mobile-screen text-white"></i> لوحة الأب (التحكم)
-            </a>
-            
-            <a href="child_app.html" class="block w-full bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white py-3 rounded-xl font-semibold border border-emerald-500/30 transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-child text-xl"></i> تطبيق/موقع الطفل
-            </a>
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl">
+            <h2 class="text-lg font-bold mb-4">الأكواد المباعة والنشطة</h2>
+            <table class="w-full text-right text-sm">
+                <thead class="bg-slate-700/50 text-slate-400">
+                    <tr>
+                        <th class="p-3">كود التفعيل</th>
+                        <th class="p-3">اسم العميل</th>
+                        <th class="p-3">الحالة</th>
+                        <th class="p-3 text-center">التحكم</th>
+                    </tr>
+                </thead>
+                <tbody id="licensesTable" class="divide-y divide-slate-700/50"></tbody>
+            </table>
         </div>
     </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBBovs_DnQWnjOrJucTHeotMl5z4j30HjI",
+            authDomain: "hack-ffa2f.firebaseapp.com",
+            databaseURL: "https://hack-ffa2f-default-rtdb.firebaseio.com",
+            projectId: "hack-ffa2f",
+            storageBucket: "hack-ffa2f.firebasestorage.app",
+            messagingSenderId: "743390397717",
+            appId: "1:743390397717:web:b88bc79e56491005ce551c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function generateLicense() {
+            const clientName = document.getElementById('clientNameInput').value.trim();
+            if(!clientName) return alert('برجاء كتابة اسم العميل أولاً');
+            const licenseKey = 'LIC-' + Math.floor(100000 + Math.random() * 900000);
+
+            db.ref('licenses/' + licenseKey).set({
+                key: licenseKey,
+                clientName: clientName,
+                status: 'active',
+                createdAt: new Date().toLocaleDateString('ar-EG')
+            }).then(() => {
+                document.getElementById('clientNameInput').value = '';
+                alert(`تم توليد الكود بنجاح: ${licenseKey}`);
+            });
+        }
+
+        function toggleLicenseStatus(key, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'banned' : 'active';
+            db.ref('licenses/' + key + '/status').set(newStatus);
+        }
+
+        db.ref('licenses').on('value', snapshot => {
+            const table = document.getElementById('licensesTable');
+            table.innerHTML = '';
+            const data = snapshot.val();
+            if(!data) {
+                table.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-500">لا توجد أكواد مسجلة</td></tr>`;
+                return;
+            }
+            Object.values(data).forEach(item => {
+                const isBanned = item.status === 'banned';
+                table.innerHTML += `
+                    <tr class="hover:bg-slate-700/30">
+                        <td class="p-3 font-mono text-indigo-300 font-bold">${item.key}</td>
+                        <td class="p-3 text-slate-200">${item.clientName}</td>
+                        <td class="p-3">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${isBanned ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">
+                                ${isBanned ? 'معطل / محظور' : 'نشط'}
+                            </span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="toggleLicenseStatus('${item.key}', '${item.status}')" class="px-3 py-1 rounded-lg text-xs font-semibold ${isBanned ? 'bg-emerald-600' : 'bg-red-600'} text-white">
+                                ${isBanned ? 'تفعيل' : 'تعطيل'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+    </script>
 </body>
 </html>
