@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الأب - التحكم والرقابة</title>
+    <title>لوحة الأب - التحكم بالطفل</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Firebase SDKs -->
+    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
 
     <!-- Auth Modal -->
     <div id="loginModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-2xl space-y-6">
-            <div class="text-center">
-                <i class="fa-solid fa-user-lock text-4xl text-indigo-500 mb-3"></i>
-                <h2 class="text-2xl font-bold text-white">تسجيل دخول الأب</h2>
-                <p class="text-slate-400 text-sm mt-1">أدخل Parent ID الخاص بك للوصول للوحة التحكم</p>
-            </div>
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-2xl space-y-6 text-center">
+            <i class="fa-solid fa-user-lock text-4xl text-indigo-500"></i>
             <div>
-                <input id="parentIdInput" type="text" placeholder="مثال: P-88219" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono text-indigo-400 uppercase tracking-widest focus:outline-none focus:border-indigo-500">
+                <h2 class="text-2xl font-bold text-white">تسجيل دخول الأب</h2>
+                <p class="text-slate-400 text-xs mt-1">أدخل كود التفعيل الخاص بك (الذي اشتريته من الأدمن)</p>
             </div>
-            <button onclick="loginParent()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition">دخول</button>
+            <input id="licenseInput" type="text" placeholder="مثال: LIC-842910" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono text-indigo-400 uppercase tracking-widest focus:outline-none focus:border-indigo-500">
+            <button onclick="loginParent()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition">دخول للوحة التحكم</button>
         </div>
     </div>
 
@@ -32,105 +31,70 @@
         <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-shield-cat text-2xl text-indigo-400"></i>
-                <span class="font-bold text-lg">لوحة مراقبة الأب</span>
-                <span id="activeParentBadge" class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full font-mono text-xs"></span>
+                <span class="font-bold text-lg">أهلاً بك يا <span id="welcomeClientName" class="text-indigo-400"></span></span>
             </div>
             <button onclick="location.reload()" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
         </header>
 
-        <main class="flex-1 p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Pairing Section -->
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-qrcode text-indigo-400"></i> ربط جهاز طفل جديد</h3>
-                <p class="text-xs text-slate-400">ولد كود جديد واكتبه في موقع الطفل لربط الجهاز بصفحتك فورياً.</p>
-                <div class="bg-slate-850 p-4 rounded-xl border border-slate-800 text-center">
-                    <div id="pairCodeDisplay" class="text-3xl font-mono font-bold tracking-widest text-emerald-400 my-2">------</div>
-                    <button onclick="generatePairCode()" class="bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-lg font-semibold border border-slate-700 transition">توليد كود ربط جديد</button>
-                </div>
+        <main class="flex-1 p-6 max-w-5xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Child Code Generator -->
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 text-center">
+                <h3 class="font-bold text-lg flex items-center justify-center gap-2"><i class="fa-solid fa-qrcode text-indigo-400"></i> توليد كود ربط الطفل</h3>
+                <p class="text-xs text-slate-400">انسخ هذا الكود واكتبه في موقع الطفل لربط جهاز طفلك فورياً.</p>
+                <div id="childPairCode" class="text-4xl font-mono font-bold tracking-widest text-emerald-400 my-4 bg-slate-850 p-4 rounded-xl border border-slate-800">------</div>
+                <button onclick="generateChildCode()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-semibold transition">توليد كود جديد</button>
             </div>
 
-            <!-- Remote Phone Control Simulator -->
-            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-mobile-screen text-indigo-400"></i> التحكم والمراقبة الحية بالهاتف</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <button onclick="sendRemoteCommand('lock')" class="p-3 bg-red-600/20 border border-red-500/30 text-red-400 rounded-xl font-semibold hover:bg-red-600 hover:text-white transition flex flex-col items-center gap-2">
-                        <i class="fa-solid fa-lock text-xl"></i> قفل التلفون فوراً
+            <!-- Remote Controls -->
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-mobile-screen text-indigo-400"></i> أزرار التحكم بالطفل</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="sendChildCommand('lock')" class="p-4 bg-red-600/20 border border-red-500/30 text-red-400 rounded-xl font-semibold hover:bg-red-600 hover:text-white transition flex flex-col items-center gap-2">
+                        <i class="fa-solid fa-lock text-2xl"></i> قفل الجهاز
                     </button>
-                    <button onclick="sendRemoteCommand('unlock')" class="p-3 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-semibold hover:bg-emerald-600 hover:text-white transition flex flex-col items-center gap-2">
-                        <i class="fa-solid fa-lock-open text-xl"></i> إلغاء القفل
+                    <button onclick="sendChildCommand('unlock')" class="p-4 bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-semibold hover:bg-emerald-600 hover:text-white transition flex flex-col items-center gap-2">
+                        <i class="fa-solid fa-lock-open text-2xl"></i> إلغاء القفل
                     </button>
-                    <button onclick="sendRemoteCommand('alarm')" class="p-3 bg-amber-600/20 border border-amber-500/30 text-amber-400 rounded-xl font-semibold hover:bg-amber-600 hover:text-white transition flex flex-col items-center gap-2">
-                        <i class="fa-solid fa-volume-high text-xl"></i> تشغيل إنذار حاد
+                    <button onclick="sendChildCommand('alarm')" class="p-4 bg-amber-600/20 border border-amber-500/30 text-amber-400 rounded-xl font-semibold hover:bg-amber-600 hover:text-white transition flex flex-col items-center gap-2 col-span-2">
+                        <i class="fa-solid fa-volume-high text-2xl"></i> إطلاق إنذار عالي
                     </button>
-                    <button onclick="sendRemoteCommand('wipe')" class="p-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition flex flex-col items-center gap-2">
-                        <i class="fa-solid fa-trash-can text-xl"></i> مسح البيانات
-                    </button>
-                </div>
-                <div id="deviceLogs" class="bg-black/50 p-4 rounded-xl font-mono text-xs text-slate-400 h-48 overflow-y-auto border border-slate-800">
-                    <div>[النظام]: بانتظار اتصال جهاز الطفل...</div>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBBovs_DnQWnjOrJucTHeotMl5z4j30HjI",
-            authDomain: "hack-ffa2f.firebaseapp.com",
-            databaseURL: "https://hack-ffa2f-default-rtdb.firebaseio.com",
-            projectId: "hack-ffa2f",
-            storageBucket: "hack-ffa2f.firebasestorage.app",
-            messagingSenderId: "743390397717",
-            appId: "1:743390397717:web:b88bc79e56491005ce551c"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        let currentParentId = null;
+        let currentLicenseKey = null;
 
         function loginParent() {
-            const id = document.getElementById('parentIdInput').value.trim();
-            if (!id) return alert('برجاء إدخال Parent ID');
+            const key = document.getElementById('licenseInput').value.trim();
+            if(!key) return alert('برجاء إدخال كود التفعيل');
 
-            db.ref('parents/' + id).once('value', snapshot => {
-                const parent = snapshot.val();
-                if (!parent) return alert('هذا الـ Parent ID غير موجود!');
-                if (parent.status === 'banned') return alert('عذراً، هذا الحساب محظور بواسطة السوبر أدمن!');
+            db.ref('licenses/' + key).once('value', snapshot => {
+                const lic = snapshot.val();
+                if(!lic) return alert('كود التفعيل غير صحيح!');
+                if(lic.status === 'banned') return alert('عذراً، هذا الكود تم تعطيله بواسطة الإدارة!');
 
-                currentParentId = id;
+                currentLicenseKey = key;
+                document.getElementById('welcomeClientName').innerText = lic.clientName;
                 document.getElementById('loginModal').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('activeParentBadge').innerText = id;
-                listenToDeviceCommands();
             });
         }
 
-        function generatePairCode() {
+        function generateChildCode() {
             const code = Math.floor(100000 + Math.random() * 900000).toString();
-            db.ref(`pairCodes/${code}`).set({
-                parentId: currentParentId,
-                status: 'pending',
-                createdAt: Date.now()
+            db.ref(`childCodes/${code}`).set({
+                licenseKey: currentLicenseKey,
+                status: 'linked'
             });
-            document.getElementById('pairCodeDisplay').innerText = code;
+            document.getElementById('childPairCode').innerText = code;
         }
 
-        function sendRemoteCommand(cmd) {
-            if (!currentParentId) return;
-            db.ref(`commands/${currentParentId}`).set({ command: cmd, timestamp: Date.now() });
-            addLog(`تم إرسال أمر: ${cmd}`);
-        }
-
-        function listenToDeviceCommands() {
-            db.ref(`deviceUpdates/${currentParentId}`).on('value', snapshot => {
-                const data = snapshot.val();
-                if (data && data.log) addLog(data.log);
-            });
-        }
-
-        function addLog(msg) {
-            const logs = document.getElementById('deviceLogs');
-            logs.innerHTML += `<div>[${new Date().toLocaleTimeString('ar-EG')}] ${msg}</div>`;
-            logs.scrollTop = logs.scrollHeight;
+        function sendChildCommand(cmd) {
+            if(!currentLicenseKey) return;
+            db.ref(`childCommands/${currentLicenseKey}`).set({ command: cmd, time: Date.now() });
+            alert('تم إرسال الأمر للجهاز بنجاح!');
         }
     </script>
 </body>
