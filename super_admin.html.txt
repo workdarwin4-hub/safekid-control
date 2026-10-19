@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>السوبر أدمن - إدارة النظام</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-6 font-sans">
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+            <div>
+                <h1 class="text-2xl font-bold text-indigo-400 flex items-center gap-2">
+                    <i class="fa-solid fa-user-shield"></i> لوحة السوبر أدمن الرئيسي
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">إدارة حسابات الآباء وحظر الحسابات فورياً</p>
+            </div>
+            <button onclick="createNewParent()" class="bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg transition">
+                <i class="fa-solid fa-plus"></i> توليد حساب أب جديد (Parent ID)
+            </button>
+        </div>
+
+        <!-- Parents List -->
+        <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl">
+            <h2 class="text-lg font-bold mb-4 text-slate-200">قائمة حسابات الآباء المعتمدة</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-sm">
+                    <thead class="bg-slate-700/50 text-slate-400">
+                        <tr>
+                            <th class="p-3 rounded-r-lg">Parent ID</th>
+                            <th class="p-3">تاريخ الإنشاء</th>
+                            <th class="p-3">الحالة</th>
+                            <th class="p-3">الأجهزة المربوطة</th>
+                            <th class="p-3 rounded-l-lg text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="parentsTable" class="divide-y divide-slate-700/50">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBBovs_DnQWnjOrJucTHeotMl5z4j30HjI",
+            authDomain: "hack-ffa2f.firebaseapp.com",
+            databaseURL: "https://hack-ffa2f-default-rtdb.firebaseio.com",
+            projectId: "hack-ffa2f",
+            storageBucket: "hack-ffa2f.firebasestorage.app",
+            messagingSenderId: "743390397717",
+            appId: "1:743390397717:web:b88bc79e56491005ce551c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function createNewParent() {
+            const parentId = 'P-' + Math.floor(100000 + Math.random() * 900000);
+            db.ref('parents/' + parentId).set({
+                parentId: parentId,
+                status: 'active',
+                createdAt: new Date().toLocaleDateString('ar-EG'),
+                devicesCount: 0
+            }).then(() => alert(`تم إنشاء حساب الأب بنجاح:\nParent ID: ${parentId}`));
+        }
+
+        function toggleStatus(parentId, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'banned' : 'active';
+            db.ref('parents/' + parentId + '/status').set(newStatus);
+        }
+
+        db.ref('parents').on('value', (snapshot) => {
+            const table = document.getElementById('parentsTable');
+            table.innerHTML = '';
+            const data = snapshot.val();
+            if (!data) {
+                table.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-slate-500">لا يوجد حسابات حالياً</td></tr>`;
+                return;
+            }
+            Object.values(data).forEach(parent => {
+                const isBanned = parent.status === 'banned';
+                table.innerHTML += `
+                    <tr class="hover:bg-slate-700/30">
+                        <td class="p-3 font-mono text-indigo-300 font-bold">${parent.parentId}</td>
+                        <td class="p-3 text-slate-400">${parent.createdAt || '-'}</td>
+                        <td class="p-3">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${isBanned ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}">
+                                ${isBanned ? 'محظور' : 'نشط'}
+                            </span>
+                        </td>
+                        <td class="p-3 text-slate-300">${parent.devicesCount || 0} جهاز</td>
+                        <td class="p-3 text-center">
+                            <button onclick="toggleStatus('${parent.parentId}', '${parent.status}')" class="px-3 py-1 rounded-lg text-xs font-semibold ${isBanned ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white transition
