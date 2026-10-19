@@ -9,6 +9,6 @@ const firebaseConfig = {
     appId: "1:743390397717:web:b88bc79e56491005ce551c"
 };
 
-// تهيئة Firebase تلقائياً عند استدعاء هذا الملف
+// تهيئة الفايرباس
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
