@@ -6,75 +6,57 @@
     <title>SafeKid Companion</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Firebase SDKs -->
+    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <!-- Screen Locked Alert -->
-    <div id="lockOverlay" class="fixed inset-0 bg-red-900/90 backdrop-blur-xl z-50 hidden flex flex-col items-center justify-center text-center p-6">
+    <!-- Lock Screen Overlay -->
+    <div id="lockOverlay" class="fixed inset-0 bg-red-950/95 backdrop-blur-xl z-50 hidden flex flex-col items-center justify-center text-center p-6">
         <i class="fa-solid fa-lock text-6xl mb-4 text-white animate-bounce"></i>
-        <h1 class="text-3xl font-bold mb-2">تم قفل الهاتف من قبل ولي الأمر</h1>
-        <p class="text-red-200 text-sm">برجاء مراجعة والدك لإلغاء القفل.</p>
+        <h1 class="text-3xl font-bold mb-2">تم قفل الجهاز</h1>
+        <p class="text-red-200 text-sm">تواصل مع الادمن لإلغاء قفل الجهاز.</p>
     </div>
 
-    <!-- Pair Box -->
+    <!-- Child Link Card -->
     <div class="bg-slate-800 p-8 rounded-3xl max-w-sm w-full border border-slate-700 shadow-2xl text-center space-y-6">
         <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto text-2xl">
-            <i class="fa-solid fa-mobile-screen-button"></i>
+            <i class="fa-solid fa-child-reaching"></i>
         </div>
         <div>
-            <h2 class="text-xl font-bold">ربط هذا الهاتف</h2>
-            <p class="text-xs text-slate-400 mt-1">أدخل كود الربط المكون من 6 أرقام والموجود في لوحة تحكم الأب</p>
+            <h2 class="text-xl font-bold">ربط جهاز الطفل</h2>
+            <p class="text-xs text-slate-400 mt-1">اكتب الكود المكون من 6 ارقام</p>
         </div>
-        <div>
-            <input id="codeEntry" type="text" maxlength="6" placeholder="000000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-widest text-indigo-400 focus:outline-none">
-        </div>
-        <button onclick="submitPairCode()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition">تأكيد وتفعيل الربط</button>
+        <input id="childCodeInput" type="text" maxlength="6" placeholder="000000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-widest text-indigo-400 focus:outline-none focus:border-indigo-500">
+        <button onclick="linkDevice()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-bold transition">ربط الجهاز الآن</button>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBBovs_DnQWnjOrJucTHeotMl5z4j30HjI",
-            authDomain: "hack-ffa2f.firebaseapp.com",
-            databaseURL: "https://hack-ffa2f-default-rtdb.firebaseio.com",
-            projectId: "hack-ffa2f",
-            storageBucket: "hack-ffa2f.firebasestorage.app",
-            messagingSenderId: "743390397717",
-            appId: "1:743390397717:web:b88bc79e56491005ce551c"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        let linkedParentId = null;
+        let linkedLicenseKey = null;
 
-        function submitPairCode() {
-            const code = document.getElementById('codeEntry').value.trim();
-            if (code.length !== 6) return alert('الكود يتكون من 6 أرقام');
+        function linkDevice() {
+            const code = document.getElementById('childCodeInput').value.trim();
+            if(code.length !== 6) return alert('الكود يتكون من 6 أرقام');
 
-            db.ref(`pairCodes/${code}`).once('value', snapshot => {
+            db.ref(`childCodes/${code}`).once('value', snapshot => {
                 const data = snapshot.val();
-                if (!data) return alert('الكود غير صحيح أو انتهت صلاحيته');
+                if(!data) return alert('الكود غير صحيح أو منتهي الصلاحية');
 
-                linkedParentId = data.parentId;
-                db.ref(`deviceUpdates/${linkedParentId}`).set({ log: 'تم اتصال جهاز الطفل بنجاح!' });
-                alert('تم الربط بنجاح!');
-                listenForParentCommands();
+                linkedLicenseKey = data.licenseKey;
+                alert('تم ربط الجهاز بنجاح!');
+                listenCommands();
             });
         }
 
-        function listenForParentCommands() {
-            db.ref(`commands/${linkedParentId}`).on('value', snapshot => {
-                const cmdData = snapshot.val();
-                if (!cmdData) return;
-
-                if (cmdData.command === 'lock') {
-                    document.getElementById('lockOverlay').classList.remove('hidden');
-                } else if (cmdData.command === 'unlock') {
-                    document.getElementById('lockOverlay').classList.add('hidden');
-                } else if (cmdData.command === 'alarm') {
-                    alert('🚨 إنذار حاد من الأب!');
-                }
+        function listenCommands() {
+            db.ref(`childCommands/${linkedLicenseKey}`).on('value', snapshot => {
+                const cmd = snapshot.val();
+                if(!cmd) return;
+                if(cmd.command === 'lock') document.getElementById('lockOverlay').classList.remove('hidden');
+                if(cmd.command === 'unlock') document.getElementById('lockOverlay').classList.add('hidden');
+                if(cmd.command === 'alarm') alert('🚨 تنبيه وإنذار عاجل !');
             });
         }
     </script>
